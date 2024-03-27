@@ -64,7 +64,7 @@
   :
 
   ```json
-  jsonCopy code{
+  {
     "id": "int",
     "date": "string",
     "ip": "string",
@@ -87,7 +87,7 @@
   :
 
   ```json
-  jsonCopy code[
+  [
     {
       "id": "int",
       "name": "string",
@@ -110,7 +110,7 @@
   :
 
   ```json
-  jsonCopy code{
+  {
     "name": "string",
     "schedule": "string" // Cron 表达式或其他定时格式
   }
@@ -121,7 +121,7 @@
   :
 
   ```json
-  jsonCopy code{
+  {
     "id": "int",
     "message": "Task created successfully."
   }
@@ -138,7 +138,7 @@
   :
 
   ```json
-  jsonCopy code{
+  {
     "name": "string",
     "schedule": "string"
   }
@@ -149,7 +149,7 @@
   :
 
   ```json
-  jsonCopy code{
+  {
     "message": "Task updated successfully."
   }
   ```
@@ -165,7 +165,7 @@
   :
 
   ```json
-  jsonCopy code{
+  {
     "message": "Task deleted successfully."
   }
   ```
@@ -181,7 +181,7 @@
   :
 
   ```json
-  jsonCopy code{
+  {
     "message": "Task <action> successfully." // <action> 将被替换为 "started" 或 "stopped"
   }
   ```
