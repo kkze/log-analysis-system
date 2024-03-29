@@ -1,47 +1,38 @@
 # backend/app/__init__.py
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
-from flask_migrate import Migrate
-import os
-from dotenv import load_dotenv
-# 加载环境变量
-load_dotenv()
-
-# 在函数外部初始化 Flask 扩展
-db = SQLAlchemy()
-migrate = None
-jwt = JWTManager()
+from flask_cors import CORS
+from .config import Config  # 导入应用配置
+from .extensions import db, jwt  # 导入数据库和JWT扩展
+from flask_migrate import Migrate  # 导入数据库迁移工具
+from .scheduler import init_scheduler  # 导入调度器初始化函数
+from .jwt_config import configure_jwt  # 导入JWT配置函数
 
 def create_app():
+    
+    # 创建Flask应用实例
     app = Flask(__name__)
-
-    # 应用配置
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-
-    # 将应用实例与 Flask 扩展绑定
+    # 从Config类加载配置
+    app.config.from_object(Config)
+    
+    # 初始化CORS支持，允许跨域请求
+    CORS(app, resources={r"/*": {"origins": Config.CORS_ORIGINS}}, supports_credentials=True)
+    
+    # 初始化数据库扩展
     db.init_app(app)
+    # 初始化JWT扩展
     jwt.init_app(app)
-
-    # 初始化并绑定 Flask-Migrate
-    migrate = Migrate(app, db, directory='backend/migrations')
-    print('成功初始化并绑定 Flask-Migrate')
-
-    # 在此处导入TokenBlacklist模型
-    from .models import TokenBlacklist
-
-    @jwt.token_in_blocklist_loader
-    def check_if_token_in_blacklist(jwt_header, jwt_payload):
-        jti = jwt_payload["jti"]
-        token = TokenBlacklist.query.filter_by(jti=jti).first()
-        return token is not None
-
-
-    # 使用相对导入来导入 configure_routes 函数
+    
+    # 配置和初始化数据库迁移工具
+    Migrate(app, db)
+    
+    # 调用JWT配置函数，设置JWT相关的回调函数，如token_in_blocklist_loader
+    configure_jwt(jwt)
+    
+    # 初始化调度器，加载并启动预定的后台任务
+    init_scheduler(app)
+    
+    # 导入并配置路由
     from .routes import configure_routes
     configure_routes(app)
-    print('成功注册路由')
-
+    
     return app

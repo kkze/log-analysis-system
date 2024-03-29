@@ -1,17 +1,10 @@
 import re
 import os
-import sys
 from datetime import datetime, timedelta
 import zipfile
 from pathlib import Path
-# 添加项目根目录到 sys.path
-project_root = Path(__file__).parent.parent
-sys.path.append(str(project_root))
-
-from backend.app import create_app, db
-from backend.app.models import LogEntry  # 导入创建Flask应用的函数和数据库实例
-app = create_app()  # 创建Flask应用实例
-
+from flask import current_app
+from .models import LogEntry, db  # 更新导入路径
 
 # 日志文件名格式：web.log.YYYY.MM.DD.log
 def get_log_filename():
@@ -86,8 +79,7 @@ def backup_log_file(log_filename):
 
 # 主逻辑
 def main():
-    with app.app_context():
-
+    with current_app.app_context():
         log_filename = get_log_filename()
         if not os.path.exists(log_filename):
             print(f"Log file {log_filename} does not exist.")

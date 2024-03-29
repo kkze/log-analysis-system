@@ -47,16 +47,21 @@ class TokenBlacklist(db.Model):
         self.jti = jti
 
 # 任务表
-class Task(db.Model):
+class ScheduledTask(db.Model):
+    __tablename__ = 'scheduled_tasks'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='stopped')  # 任务状态，默认为停止状态
-    schedule = db.Column(db.String(100), nullable=False)  # 任务调度表达式或其他格式
+    status = db.Column(db.String(20), nullable=False, default='stopped')  # 任务状态
+    schedule = db.Column(db.String(100), nullable=False)  # 任务调度表达式，例如"Cron"表达式
+    last_run = db.Column(db.DateTime)  # 最后运行时间
+    next_run = db.Column(db.DateTime)  # 下次运行时间
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
             "status": self.status,
-            "schedule": self.schedule
+            "schedule": self.schedule,
+            "last_run": self.last_run.isoformat() if self.last_run else None,
+            "next_run": self.next_run.isoformat() if self.next_run else None
         }

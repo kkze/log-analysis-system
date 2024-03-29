@@ -1,8 +1,9 @@
 # Routes go here 
 # routes.py
 from flask import request, jsonify
+from flask_cors import cross_origin
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
-from .models import LogEntry, TokenBlacklist, User, db  # 使用相对导入
+from .models import LogEntry, ScheduledTask, TokenBlacklist, User, db  # 使用相对导入
 
 def configure_routes(app):
      
@@ -29,11 +30,12 @@ def configure_routes(app):
      
      
     #登录
-    @app.route('/api/auth/login', methods=['POST'])
+    @app.route('/api/login', methods=['POST'])
+    @cross_origin()
     def login():
         if not request.is_json:
             return jsonify({"msg": "Missing JSON in request"}), 400
-    
+        print(request.json)
         username = request.json.get('username', None)
         password = request.json.get('password', None)
         if not username or not password:
@@ -44,10 +46,10 @@ def configure_routes(app):
             return jsonify({"msg": "Bad username or password"}), 401
     
         access_token = create_access_token(identity=username)
-        return jsonify(access_token=access_token), 200
+        return jsonify(token=access_token), 200
     
     # 登出
-    @app.route('/api/auth/logout', methods=['GET'])
+    @app.route('/api/logout', methods=['GET'])
     @jwt_required()
     def logout():
         jti = get_jwt()['jti']
@@ -125,3 +127,32 @@ def configure_routes(app):
         db.session.commit()
 
         return jsonify({"msg": "Log created successfully"}), 201
+
+    # 创建任务
+    @app.route('/api/tasks', methods=['POST'])
+    @jwt_required()
+    def create_task():
+        data = request.get_json()
+        new_task = ScheduledTask(name=data['name'], schedule=data['schedule'])
+        db.session.add(new_task)
+        db.session.commit()
+        return jsonify({"message": "Task created successfully.", "task": new_task.to_dict()}), 201
+
+    # 删除任务
+    @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+    @jwt_required()
+    def delete_task(task_id):
+        task = ScheduledTask.query.get_or_404(task_id)
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({"message": "Task deleted successfully."})
+    
+    # 获取任务列表
+    @app.route('/api/tasks', methods=['GET'])
+    @jwt_required()
+    def get_tasks():
+        tasks = ScheduledTask.query.all()
+        return jsonify([task.to_dict() for task in tasks])
+
+    # 启动任务
+    
