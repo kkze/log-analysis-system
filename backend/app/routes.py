@@ -1,8 +1,14 @@
 # Routes go here 
 # routes.py
-from flask import request, jsonify
+from flask import current_app, request, jsonify
 from flask_cors import cross_origin
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
+
+from .task import run_task
+
+from .utils import perform_db_operation
+
+from .scheduler import reload_tasks
 from .models import LogEntry, ScheduledTask, TokenBlacklist, User, db  # 使用相对导入
 
 def configure_routes(app):
@@ -30,7 +36,7 @@ def configure_routes(app):
      
      
     #登录
-    @app.route('/api/login', methods=['POST'])
+    @app.route('/api/auth/login', methods=['POST'])
     @cross_origin()
     def login():
         if not request.is_json:
@@ -128,15 +134,28 @@ def configure_routes(app):
 
         return jsonify({"msg": "Log created successfully"}), 201
 
-    # 创建任务
+   # 创建任务
     @app.route('/api/tasks', methods=['POST'])
     @jwt_required()
     def create_task():
         data = request.get_json()
-        new_task = ScheduledTask(name=data['name'], schedule=data['schedule'])
+        new_task = ScheduledTask(
+            name=data['name'],
+            task_type=data['task_type'],
+            schedule=data['schedule'],
+            status='stopped'
+        )
         db.session.add(new_task)
-        db.session.commit()
-        return jsonify({"message": "Task created successfully.", "task": new_task.to_dict()}), 201
+        response = perform_db_operation(
+            lambda: db.session.commit(),
+            "Task created successfully.",
+            "Failed to create task."
+        )
+
+        if response[1] == 200:
+            reload_tasks(current_app._get_current_object())
+            response[0].json['task'] = new_task.to_dict()
+        return response
 
     # 删除任务
     @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
@@ -144,8 +163,53 @@ def configure_routes(app):
     def delete_task(task_id):
         task = ScheduledTask.query.get_or_404(task_id)
         db.session.delete(task)
-        db.session.commit()
-        return jsonify({"message": "Task deleted successfully."})
+        response = perform_db_operation(
+            lambda: db.session.commit(),
+            "Task deleted successfully.",
+            "Failed to delete task."
+        )
+        
+        if response[1] == 200:
+            reload_tasks(current_app._get_current_object())
+        return response
+
+    # 启动任务
+    @app.route('/api/tasks/start/<int:task_id>', methods=['POST'])
+    @jwt_required()
+    def start_task(task_id):
+        task = ScheduledTask.query.get_or_404(task_id)
+        if task.status != 'running':
+            task.status = 'running'
+            response = perform_db_operation(
+                lambda: db.session.commit(),
+                "Task started successfully.",
+                "Failed to start task."
+            )
+
+            if response[1] == 200:
+                reload_tasks(current_app._get_current_object())
+        else:
+            response = jsonify({"message": "Task is already running."}), 400
+        return response
+
+    # 停止任务
+    @app.route('/api/tasks/stop/<int:task_id>', methods=['POST'])
+    @jwt_required()
+    def stop_task(task_id):
+        task = ScheduledTask.query.get_or_404(task_id)
+        if task.status != 'stopped':
+            task.status = 'stopped'
+            response = perform_db_operation(
+                lambda: db.session.commit(),
+                "Task stopped successfully.",
+                "Failed to stop task."
+            )
+
+            if response[1] == 200:
+                reload_tasks(current_app._get_current_object())
+        else:
+            response = jsonify({"message": "Task is already stopped."}), 400
+        return response
     
     # 获取任务列表
     @app.route('/api/tasks', methods=['GET'])
@@ -153,6 +217,3 @@ def configure_routes(app):
     def get_tasks():
         tasks = ScheduledTask.query.all()
         return jsonify([task.to_dict() for task in tasks])
-
-    # 启动任务
-    

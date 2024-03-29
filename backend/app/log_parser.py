@@ -79,15 +79,14 @@ def backup_log_file(log_filename):
 
 # 主逻辑
 def main():
-    with current_app.app_context():
-        log_filename = get_log_filename()
-        if not os.path.exists(log_filename):
-            print(f"Log file {log_filename} does not exist.")
-        else:
-            parsed_data = parse_log_file(log_filename)
-            save_parsed_data_to_db(parsed_data)
-            backup_log_file(log_filename)
-            print(f"Successfully parsed and saved {len(parsed_data)} lines to database.")
+    log_filename = get_log_filename()
+    if not os.path.exists(log_filename):
+        print(f"Log file {log_filename} does not exist.")
+    else:
+        parsed_data = parse_log_file(log_filename)
+        save_parsed_data_to_db(parsed_data)
+        backup_log_file(log_filename)
+        print(f"Successfully parsed and saved {len(parsed_data)} lines to database.")
 
 if __name__ == "__main__":
         main()

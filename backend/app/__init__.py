@@ -22,6 +22,9 @@ def create_app():
     # 初始化JWT扩展
     jwt.init_app(app)
     
+    with app.app_context():
+        db.create_all()  # 创建或更新数据库表结构
+
     # 配置和初始化数据库迁移工具
     Migrate(app, db)
     

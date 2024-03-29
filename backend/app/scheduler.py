@@ -1,32 +1,46 @@
-# backend/app/scheduler.py
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR 
+from flask import current_app
+from .task import run_task
 from .models import ScheduledTask
-from .log_parser import main as parse_logs
-
 scheduler = BackgroundScheduler(daemon=True)
 
 def reload_tasks(app):
-    with app.app_context():
-        scheduler.remove_all_jobs()  # 清除现有的任务
-        tasks = ScheduledTask.query.filter_by(status='running').all()
-        for task in tasks:
+    app.logger.info("Reloading tasks...")
+    scheduled_jobs = scheduler.get_jobs()
+    tasks = ScheduledTask.query.filter_by(status='running').all()
+
+    for task in tasks:
+        if f'scheduled_task_{task.id}' not in [job.id for job in scheduled_jobs]:
+            app.logger.info(f"Scheduling task {task.id} [{task.name}] with schedule {task.schedule}")
             scheduler.add_job(
-                func=parse_logs,
+                func=run_task,
+                args=[task.id, app],
                 trigger=CronTrigger.from_crontab(task.schedule),
-                id=str(task.id),
-                name=task.name
+                id=f'scheduled_task_{task.id}',
+                name=task.name,
+                replace_existing=True,
             )
 
 def init_scheduler(app):
     with app.app_context():
-    # 使用传入的app实例来加载任务和启动调度器
         reload_tasks(app)
         if not scheduler.running:
-         scheduler.start()
+            scheduler.start()
 
-    # 确保在Flask应用关闭时关闭调度器
     @app.teardown_appcontext
     def shutdown_scheduler(exception=None):
         if scheduler.running:
-            scheduler.shutdown()
+            app.logger.info("Shutting down scheduler...")
+            scheduler.shutdown(wait=False)
+
+#任务执行添加监听器来处理错误和发送通知
+def task_listener(event):
+    if event.exception:
+        current_app.logger.error(f"Task {event.job_id} failed with exception: {event.exception}")
+        # 发送通知逻辑...
+    else:
+        current_app.logger.info(f"Task {event.job_id} completed successfully.")
+
+scheduler.add_listener(task_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
