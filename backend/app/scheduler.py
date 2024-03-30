@@ -33,6 +33,7 @@ def reload_tasks(app):
 
 def init_scheduler(app):
     with app.app_context():
+        # 使用lambda函数添加监听器,因为监听器需要在应用上下文中运行
         scheduler.add_listener(lambda event: task_listener(event, app), EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
         reload_tasks(app)
         if not scheduler.running:
