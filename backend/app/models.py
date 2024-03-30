@@ -1,5 +1,5 @@
-from . import db
-import datetime
+from datetime import datetime, timezone
+from .extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # 日志表
@@ -41,7 +41,7 @@ class User(db.Model):
 class TokenBlacklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), nullable=False, unique=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
 
     def __init__(self, jti):
         self.jti = jti
@@ -56,8 +56,10 @@ class ScheduledTask(db.Model):
     schedule = db.Column(db.String(100), nullable=False)  # 任务的调度表达式
     last_run = db.Column(db.DateTime)  # 最后一次运行时间
     next_run = db.Column(db.DateTime)  # 下一次运行时间
+    start_time = db.Column(db.DateTime, default=datetime.utcnow) #开始运行的时间
 
     def to_dict(self):
+        # 更新to_dict方法以包含next_run
         return {
             'id': self.id,
             'name': self.name,
@@ -66,4 +68,5 @@ class ScheduledTask(db.Model):
             'schedule': self.schedule,
             'last_run': self.last_run.isoformat() if self.last_run else None,
             'next_run': self.next_run.isoformat() if self.next_run else None,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
         }
