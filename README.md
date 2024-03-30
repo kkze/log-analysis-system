@@ -151,14 +151,14 @@ POST
     `401 Unauthorized`：未经身份验证的访问
 
     ```
-    e{
+    {
       "msg": "Unauthorized"
     }
     ```
   - **错误示例**
 
     ```
-    e{
+    {
       "error": "Invalid date format"
     }
     ```
@@ -182,100 +182,115 @@ POST
 
 ### 3. 任务管理
 
-#### 获取任务列表
+- **基础URL**: `/api/tasks`
+- **认证**: 所有请求都需要JWT认证。在请求头中添加`Authorization: Bearer <your_token>`。
 
-- **URL**: `/api/tasks`
-- **方法**: `GET`
-- 响应
+#### 创建任务 (POST)
 
-  :
+- **路径**: `/api/tasks`
+- **方法**: POST
+- **描述**: 创建一个新任务。
+- **权限**: 需JWT认证。
+- **请求体**:
 
-  ```json
-  [
-    {
-      "id": "int",
-      "name": "string",
-      "status": "string", // "running", "stopped"
-      "creation_date": "string",
-      "last_run": "string" // "YYYY-MM-DD HH:MM:SS"
-    },
-    ...
-  ]
-  ```
+```
+{
+  "name": "Sample Task",
+  "task_type": "repeat",
+  "execute_type": "immediate",
+  "schedule": "daily",
+  "start_time": "2024-01-01T08:00:00Z",
+  "day_of_week": "1"
+}
+```
 
-#### 新增任务
+- **成功响应** (200): 返回创建的任务详情。
+- **失败响应** (400): 请求数据不合法，返回错误信息。
 
-- **URL**: `/api/tasks`
-- **方法**: `POST`
-- 请求体
+#### 编辑任务 (PUT)
 
-  :
+- **路径**: `/api/tasks/<task_id>`
 
-  ```json
-  {
-    "name": "string",
-    "schedule": "string" // Cron 表达式或其他定时格式
-  }
-  ```
-- 响应
+- **方法**: PUT
 
-  :
+- **描述**: 编辑指定ID的任务。
 
-  ```json
-  {
-    "id": "int",
-    "message": "Task created successfully."
-  }
-  ```
+- **权限**: 需JWT认证。
 
-#### 编辑任务
-
-- **URL**: `/api/tasks/<id>`
-- **方法**: `PUT`
-- 请求体
+- URL参数
 
   :
 
-  ```json
-  {
-    "name": "string",
-    "schedule": "string"
-  }
-  ```
-- 响应
+  - `task_id`: 任务ID。
+
+- **请求体**:
+
+```
+jsonCopy code{
+  "name": "Updated Task Name",
+  "task_type": "single",
+  "execute_type": "scheduled",
+  "schedule": "weekly",
+  "start_time": "2024-02-01T09:00:00Z",
+  "day_of_week": "3"
+}
+```
+
+- **成功响应** (200): 任务编辑成功，返回编辑后的任务详情。
+- **失败响应** (400): 请求数据不合法或任务未找到，返回错误信息。
+
+#### 删除任务 (DELETE)
+
+- **路径**: `/api/tasks/<task_id>`
+
+- **方法**: DELETE
+
+- **描述**: 删除指定ID的任务。
+
+- **权限**: 需JWT认证。
+
+- URL参数
 
   :
 
-  ```json
-  {
-    "message": "Task updated successfully."
-  }
-  ```
+  - `task_id`: 任务ID。
 
-#### 删除任务
+- **成功响应** (200): 任务删除成功，返回成功消息。
 
-- **URL**: `/api/tasks/<id>`
-- **方法**: `DELETE`
-- 响应
+- **失败响应** (404): 任务未找到，返回错误信息。
+
+#### 列出所有任务 (GET)
+
+- **路径**: `/api/tasks/tasks_list`
+- **方法**: GET
+- **描述**: 获取所有任务的列表。
+- **权限**: 需JWT认证。
+- **成功响应** (200): 返回任务列表。
+
+#### 获取任务详情 (GET)
+
+- **路径**: `/api/tasks/<task_id>`
+
+- **方法**: GET
+
+- **描述**: 获取指定ID的任务详情。
+
+- **权限**: 需JWT认证。
+
+- URL参数
 
   :
 
-  ```json
-  {
-    "message": "Task deleted successfully."
-  }
-  ```
+  - `task_id`: 任务ID。
 
-#### 启动/停止任务
+- **成功响应** (200): 返回任务详情。
 
-- **URL**: `/api/tasks/<id>/<action>` // `action` 可以是 `start` 或 `stop`
-- **方法**: `POST`
-- 响应
+- **失败响应** (404): 任务未找到，返回错误信息。
 
-  :
+### 注意事项
 
-  ```json
-  {
-    "message": "Task <action> successfully." // <action> 将被替换为 "started" 或 "stopped"
-  }
-  ```
+- 所有的时间和日期应使用ISO 8601格式，如`2024-01-01T08:00:00Z`。
+- `task_type`可为`single`（单次任务）或`repeat`（重复任务）。
+- `execute_type`可为`immediate`（立即执行）或`scheduled`（计划执行）。
+- `schedule`在`task_type`为`repeat`时需指定，可选值有`daily`（每天），`hourly`（每小时），`minutely`（每分钟），`monthly`（每月），`weekly`（每周）。
+- `day_of_week`用于`weekly`调度，指定星期几执行，值为0到6（0表示周日，6表示周六）。仅当`schedule`为`weekly`时需要此字段。

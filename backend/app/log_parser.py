@@ -3,12 +3,13 @@ import re
 import os
 from datetime import datetime, timedelta
 import zipfile
-from flask import current_app
+
+import pytz
 from .models import LogEntry, db  # 更新导入路径
 
 # 日志文件名格式：web.log.YYYY.MM.DD.log
 def get_log_filename():
-    date = (datetime.now() - timedelta(days=1)).strftime("%Y.%m.%d")
+    date = (datetime.now(pytz.timezone('Asia/Shanghai')) - timedelta(days=1)).strftime("%Y.%m.%d")
     return f"web.log.{date}.log"
 
 # 解析日志行

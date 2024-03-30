@@ -2,14 +2,14 @@
 from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 from .route_error_handlers import register_error_handlers
 from .route_blueprints import all_blueprints
 from .config import Config  # 导入应用配置
 from .extensions import db, jwt  # 导入数据库和JWT扩展
 from flask_migrate import Migrate  # 导入数据库迁移工具
-from .scheduler import init_scheduler  # 导入调度器初始化函数
+from .scheduler import  init_scheduler  # 导入调度器初始化函数
 from .jwt_config import configure_jwt  # 导入JWT配置函数
+
 # 加载环境变量
 load_dotenv()
 
@@ -40,6 +40,7 @@ def create_app():
     # 初始化调度器，加载并启动预定的后台任务
     init_scheduler(app)
     
+    
     # 注册错误处理器
     register_error_handlers(app)
 
@@ -47,4 +48,5 @@ def create_app():
     for blueprint, prefix in all_blueprints:
         app.register_blueprint(blueprint, url_prefix=prefix)
     
+
     return app

@@ -1,8 +1,10 @@
 import random
 from datetime import datetime, timedelta
 
+import pytz
+
 # 日志文件名格式
-date = datetime.now() - timedelta(days=1)  # T+1日志
+date = datetime.now(pytz.timezone('Asia/Shanghai')) - timedelta(days=1)  # T+1日志
 filename = date.strftime("web.log.%Y.%m.%d.log")
 
 # 可能的IP地址、请求路径、HTTP方法和状态码
