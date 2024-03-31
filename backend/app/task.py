@@ -22,10 +22,6 @@ def run_task(task_id, app):
                     tz = pytz.timezone('Asia/Shanghai')  # 为北京时间定义时区
                     now = datetime.now(tz)  # 获取当前时间，并应用时区
                     print(f"{task_id} 正在运行")
-                    # if task.task_type == 'repeat' and task.schedule:
-                    #     iter = croniter(repeat_to_cron(task.schedule), now)
-                    #     next_run_local = iter.get_next(datetime)
-                    #     task.next_run = next_run_local
                     task_func()
                     task.last_run = datetime.now(pytz.timezone('Asia/Shanghai'))
                     if task.task_type == 'single':

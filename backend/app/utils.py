@@ -15,20 +15,31 @@ def perform_db_operation(db_operation, success_message, failure_message):
         current_app.logger.error(f"{failure_message}: {e}")  # 记录错误日志
         return jsonify({"error": failure_message, "detail": str(e)}), 500
     
+from datetime import datetime, timedelta
+from apscheduler.triggers.date import DateTrigger
+from apscheduler.triggers.cron import CronTrigger
+import pytz
+
 def generate_scheduler_params(task_type, execute_type, schedule=None, start_time=None, day_of_week=None):
     """
     生成APScheduler的调度参数，考虑到任务类型、执行计划、以及任务的具体调度需求。
+    现在增加了一个新的逻辑：如果开始时间小于当前时间，那么开始时间将被设置为当前时间加1秒。
     """
     tz = pytz.timezone('Asia/Shanghai')  # 定义时区
+    now = datetime.now(tz)
     params = {}
+
+    if start_time and start_time.astimezone(tz) < now:
+        # 如果开始时间小于现在的时间，则将开始时间更新为现在的时间加1秒
+        start_time = now + timedelta(seconds=1)
 
     if task_type == 'single':
         if execute_type == 'immediate':
             # 立即执行的单次任务，延迟1秒以避免立即执行的问题
-            params['trigger'] = DateTrigger(run_date=datetime.now(tz) + timedelta(seconds=1))
+            params['trigger'] = DateTrigger(run_date=now + timedelta(seconds=1))
         elif execute_type == 'scheduled' and start_time:
-            # 计划执行的单次任务，使用指定的开始时间
-            params['trigger'] = DateTrigger(run_date=start_time.astimezone(tz))
+            # 计划执行的单次任务，使用更新后的开始时间
+            params['trigger'] = DateTrigger(run_date=start_time)
     elif task_type == 'repeat':
         cron_fields = {
             'second': start_time.second if start_time else '0',
@@ -42,8 +53,8 @@ def generate_scheduler_params(task_type, execute_type, schedule=None, start_time
         params['trigger'] = CronTrigger(**cron_fields)
 
         if execute_type == 'scheduled' and start_time:
-            # 如果任务计划在将来某个时间点开始执行，设置start_date
-            params['start_date'] = start_time.astimezone(tz)
+            # 如果任务计划在将来某个时间点开始执行，设置start_date为更新后的开始时间
+            params['start_date'] = start_time
 
     return params
 
