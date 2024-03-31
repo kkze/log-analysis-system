@@ -26,6 +26,7 @@ def run_task(task_id, app):
                     task.last_run = datetime.now(pytz.timezone('Asia/Shanghai'))
                     if task.task_type == 'single':
                         task.status = "completed"
+                        print(f"{task_id} 已完成")
                     db.session.commit()
                 except Exception as e:
                     db.session.rollback()

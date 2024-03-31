@@ -1,12 +1,11 @@
 import atexit
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR 
 from croniter import croniter
 from flask import current_app
 import pytz
-from .utils import generate_scheduler_params, repeat_to_cron
+from .utils import generate_scheduler_params
 from .task import run_task
 from .models import ScheduledTask, TaskExecutionLog
 from .models import db
@@ -19,6 +18,7 @@ def reload_tasks(app):
         scheduled_jobs = scheduler.get_jobs()
         tasks = ScheduledTask.query.filter_by(status='running').all()
         for task in tasks:
+            # TODO: 解决时区问题
             scheduler_params = generate_scheduler_params(task.task_type,task.execute_type, task.schedule, task.start_time,task.day_of_week)
             app.logger.info(f"Task {task.id} [{task.name}] is running. scheduler_params: {scheduler_params}")
             if f'scheduled_task_{task.id}' not in [job.id for job in scheduled_jobs]:
@@ -57,8 +57,8 @@ def task_listener(event, app):
             now = datetime.now(tz)  # 获取当前时间，并应用时区
             if task.schedule:
                 job = scheduler.get_job(event.job_id)
-                task.next_run = job.next_run_time
                 print(f"下次运行时间:{job.next_run_time}")
+                task.next_run = job.next_run_time
 
 
 

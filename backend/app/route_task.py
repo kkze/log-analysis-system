@@ -21,10 +21,11 @@ def create_task():
         data = task_schema.load(request.get_json())
     except ValidationError as err:
         return jsonify(err.messages), 400
+    
     task = ScheduledTask(
         name=data['name'],
         task_type=data['task_type'],
-        status='running',  # 默认状态为pending
+        status='running',  
         schedule=data.get('schedule'),
         start_time=data.get('start_time'),
         execute_type=data.get('execute_type')

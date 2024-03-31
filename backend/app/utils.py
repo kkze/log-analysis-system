@@ -28,18 +28,16 @@ def generate_scheduler_params(task_type, execute_type, schedule=None, start_time
     tz = pytz.timezone('Asia/Shanghai')  # 定义时区
     now = datetime.now(tz)
     params = {}
-
-    if start_time and start_time.astimezone(tz) < now:
-        # 如果开始时间小于现在的时间，则将开始时间更新为现在的时间加1秒
-        start_time = now + timedelta(seconds=1)
-
+    print(f"start_time:{start_time}")
     if task_type == 'single':
         if execute_type == 'immediate':
             # 立即执行的单次任务，延迟1秒以避免立即执行的问题
             params['trigger'] = DateTrigger(run_date=now + timedelta(seconds=1))
         elif execute_type == 'scheduled' and start_time:
             # 计划执行的单次任务，使用更新后的开始时间
-            params['trigger'] = DateTrigger(run_date=start_time)
+            local_time =start_time.replace(tzinfo=tz)
+            print(f"tz:{local_time}")
+            params['trigger'] = DateTrigger(run_date=local_time)
     elif task_type == 'repeat':
         cron_fields = {
             'second': start_time.second if start_time else '0',
